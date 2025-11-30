@@ -188,6 +188,7 @@ public Q_SLOTS:
     void clear();
     void openInBrowser();
     void openModViewInBrowser();
+    void openModerationLog();
     void openWhispersInBrowser();
     void openBrowserPlayer();
     void openInStreamlink();

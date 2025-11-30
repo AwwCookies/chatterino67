@@ -19,6 +19,7 @@
 #include "util/CustomPlayer.hpp"
 #include "util/StreamLink.hpp"
 #include "widgets/ChatterListWidget.hpp"
+#include "widgets/dialogs/ModerationLogPopup.hpp"
 #include "widgets/dialogs/SelectChannelDialog.hpp"
 #include "widgets/dialogs/SelectChannelFiltersDialog.hpp"
 #include "widgets/dialogs/UserInfoPopup.hpp"
@@ -1134,6 +1135,19 @@ void Split::openModViewInBrowser()
         QDesktopServices::openUrl("https://www.twitch.tv/moderator/" +
                                   twitchChannel->getName());
     }
+}
+
+void Split::openModerationLog()
+{
+    auto channel = this->getChannel();
+    if (!channel)
+    {
+        return;
+    }
+
+    auto *popup = new ModerationLogPopup(this, channel);
+    popup->setAttribute(Qt::WA_DeleteOnClose);
+    popup->show();
 }
 
 void Split::openInStreamlink()
