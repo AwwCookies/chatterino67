@@ -471,6 +471,8 @@ std::unique_ptr<QMenu> SplitHeader::createMainMenu()
                 OPEN_MOD_VIEW_IN_BROWSER,
                 h->getDisplaySequence(HotkeyCategory::Split, "openModView"),
                 this->split_, &Split::openModViewInBrowser);
+            menu->addAction("Moderation Log", this->split_,
+                            &Split::openModerationLog);
         }
 
         menu->addAction(
