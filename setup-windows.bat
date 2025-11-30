@@ -196,7 +196,7 @@ echo [7/7] Configuring CMake build...
 if not exist "build" mkdir build
 pushd build
 
-cmake .. -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake"
+cmake .. -DCMAKE_TOOLCHAIN_FILE="%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake"
 if %ERRORLEVEL% neq 0 (
     echo.
     echo ERROR: CMake configuration failed.
