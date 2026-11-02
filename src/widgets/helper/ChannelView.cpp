@@ -1618,7 +1618,9 @@ MessageElementFlags ChannelView::getFlags() const
             this->underlyingChannel_ ==
                 getApp()->getTwitch()->getLiveChannel() ||
             this->underlyingChannel_ ==
-                getApp()->getTwitch()->getAutomodChannel())
+                getApp()->getTwitch()->getAutomodChannel() ||
+            this->underlyingChannel_ ==
+                getApp()->getTwitch()->getModerationLogChannel())
         {
             flags.set(MessageElementFlag::ChannelName);
             flags.unset(MessageElementFlag::ChannelPointReward);
@@ -1633,7 +1635,9 @@ MessageElementFlags ChannelView::getFlags() const
     }
 
     if (this->sourceChannel_ == getApp()->getTwitch()->getMentionsChannel() ||
-        this->sourceChannel_ == getApp()->getTwitch()->getAutomodChannel())
+        this->sourceChannel_ == getApp()->getTwitch()->getAutomodChannel() ||
+        this->sourceChannel_ ==
+            getApp()->getTwitch()->getModerationLogChannel())
     {
         flags.set(MessageElementFlag::ChannelName);
     }
@@ -2595,6 +2599,7 @@ void ChannelView::mouseReleaseEvent(QMouseEvent *event)
                             QUrl(u"https://www.twitch.tv/" % userName));
                         break;
                     case Channel::Type::TwitchMentions:
+                    case Channel::Type::TwitchModerationLog:
                         openTwitchUsercard(layout->getMessage()->channelName,
                                            userName);
                         break;
@@ -3031,7 +3036,8 @@ void ChannelView::addMessageContextMenuItems(QMenu *menu,
                               this->context_ == Context::UserCard) &&
                              this->split_ != nullptr;
     bool isMentions =
-        this->channel()->getType() == Channel::Type::TwitchMentions;
+        this->channel()->getType() == Channel::Type::TwitchMentions ||
+        this->channel()->getType() == Channel::Type::TwitchModerationLog;
     bool isAutomod = this->channel()->getType() == Channel::Type::TwitchAutomod;
     if (isSearch || isMentions || isReplyOrUserCard || isAutomod)
     {
@@ -3328,6 +3334,8 @@ bool ChannelView::mayContainMessage(const MessagePtr &message)
             return message->flags.has(MessageFlag::System);
         case Channel::Type::TwitchAutomod:
             return message->flags.has(MessageFlag::AutoMod);
+        case Channel::Type::TwitchModerationLog:
+            return true;
         case Channel::Type::TwitchEnd:  // TODO: not used?
         case Channel::Type::None:       // Unspecific
         case Channel::Type::Misc:       // Unspecific

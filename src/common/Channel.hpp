@@ -56,6 +56,8 @@ public:
         TwitchLive,
         /// TwitchAutomod
         TwitchAutomod,
+        /// TwitchModerationLog
+        TwitchModerationLog,
         /// TwitchEnd
         TwitchEnd,
         Kick,
@@ -230,6 +232,8 @@ constexpr std::optional<std::string_view> qmagicenumSerializedName(
             return "twitch";
         case Type::TwitchAutomod:
             return "automod";
+        case Type::TwitchModerationLog:
+            return "modlog";
         case Type::TwitchMentions:
             return "mentions";
         case Type::TwitchWatching:

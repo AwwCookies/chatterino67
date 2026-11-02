@@ -10,6 +10,7 @@
 #include "messages/MessageBuilder.hpp"
 #include "messages/MessageElement.hpp"
 #include "messages/MessageSimilarity.hpp"
+#include "providers/twitch/ModerationLogChannel.hpp"
 #include "singletons/Logging.hpp"
 #include "singletons/Settings.hpp"
 #include "util/ChannelHelpers.hpp"
@@ -188,6 +189,13 @@ void Channel::addMessage(MessagePtr message, MessageContext context,
     }
 
     this->messageAppended.invoke(message, overridingFlags);
+
+    // Mirror moderation actions into the global moderation log panel
+    if (context == MessageContext::Original &&
+        (this->getType() == Type::Twitch || this->getType() == Type::Kick))
+    {
+        forwardModerationAction(*this, message);
+    }
 }
 
 void Channel::addSystemMessage(const QString &contents)

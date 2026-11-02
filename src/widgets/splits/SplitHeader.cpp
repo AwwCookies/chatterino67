@@ -567,6 +567,11 @@ std::unique_ptr<QMenu> SplitHeader::createMainMenu()
                 h->getDisplaySequence(HotkeyCategory::Split, "openModView"),
                 this->split_, &Split::openModViewInBrowser);
         }
+
+        // Always available: the moderation log is a local, filtered view of a
+        // channel's messages, so it must not require moderation rights.
+        menu->addAction("Moderation Log", this->split_,
+                        &Split::openModerationLogPanel);
     }
 
     menu->addAction(

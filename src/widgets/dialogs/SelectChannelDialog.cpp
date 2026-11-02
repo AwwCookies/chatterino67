@@ -288,6 +288,26 @@ SelectChannelDialog::SelectChannelDialog(QWidget *parent)
 
     ui.automod->installEventFilter(&this->tabFilter_);
 
+    // Moderation log
+    ui.moderationLog = new AutoCheckedRadioButton("Moderation Log");
+    layout->addWidget(ui.moderationLog);
+
+    ui.moderationLogLabel = new QLabel(
+        "Shows moderation actions (timeouts, bans, deletions, chat clears and "
+        "AutoMod) from every channel you have open, together with the last "
+        "message the user sent before the action");
+    ui.moderationLogLabel->setVisible(false);
+    ui.moderationLogLabel->setWordWrap(true);
+    layout->addWidget(ui.moderationLogLabel);
+
+    QObject::connect(ui.moderationLog, &AutoCheckedRadioButton::toggled, this,
+                     [this](bool enabled) {
+                         auto &ui = this->ui_;
+                         ui.moderationLogLabel->setVisible(enabled);
+                     });
+
+    ui.moderationLog->installEventFilter(&this->tabFilter_);
+
     layout->addStretch(1);
 
     ui.notebook->addPage(ui.twitchPage, "Twitch");
@@ -451,6 +471,10 @@ void SelectChannelDialog::setSelectedChannel(
             this->ui_.automod->setFocus();
         }
         break;
+        case Channel::Type::TwitchModerationLog: {
+            this->ui_.moderationLog->setFocus();
+        }
+        break;
         case Channel::Type::Kick: {
             this->ui_.kickName->setText(channel->getName());
             this->ui_.kickName->selectAll();
@@ -552,6 +576,11 @@ IndirectChannel SelectChannelDialog::getSelectedChannel() const
         return getApp()->getTwitch()->getAutomodChannel();
     }
 
+    if (this->ui_.moderationLog->isChecked())
+    {
+        return getApp()->getTwitch()->getModerationLogChannel();
+    }
+
     return this->selectedChannel_;
 }
 
@@ -586,9 +615,9 @@ bool SelectChannelDialog::EventFilter::eventFilter(QObject *watched,
                 return true;
             }
 
-            if (widget == ui.automod)
+            if (widget == ui.moderationLog)
             {
-                // Special case for when current selection is "AutoMod" (the last entry in the list), next wrap is Channel, but we need to select its edit box
+                // Special case for when current selection is "Moderation Log" (the last entry in the list), next wrap is Channel, but we need to select its edit box
                 ui.channel->setFocus();
                 return true;
             }
@@ -614,7 +643,7 @@ bool SelectChannelDialog::EventFilter::eventFilter(QObject *watched,
             if (widget == ui.channelName)
             {
                 // Special case for when current selection is the "Channel" entry's edit box since the Edit box actually has the focus
-                ui.automod->setFocus();
+                ui.moderationLog->setFocus();
                 return true;
             }
 

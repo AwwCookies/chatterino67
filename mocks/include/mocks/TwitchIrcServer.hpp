@@ -160,6 +160,11 @@ public:
         return this->automodChannel;
     }
 
+    ChannelPtr getModerationLogChannel() const override
+    {
+        return this->moderationLogChannel;
+    }
+
     bool isModeratorIn(const QString & /* login */) const override
     {
         return false;
@@ -171,6 +176,7 @@ public:
     ChannelPtr mentionsChannel;
     ChannelPtr liveChannel;
     ChannelPtr automodChannel;
+    ChannelPtr moderationLogChannel;
     QString lastUserThatWhisperedMe{"forsen"};
 
     std::unordered_map<QString, std::weak_ptr<Channel>> mockChannels;

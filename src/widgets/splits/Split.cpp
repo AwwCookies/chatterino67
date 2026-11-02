@@ -1276,6 +1276,42 @@ void Split::openModViewInBrowser()
     }
 }
 
+void Split::openModerationLogPanel()
+{
+    auto *window = dynamic_cast<Window *>(this->window());
+    if (window == nullptr)
+    {
+        return;
+    }
+
+    auto &notebook = window->getNotebook();
+
+    // Focus an existing moderation log panel instead of opening another one
+    for (int i = 0; i < notebook.getPageCount(); ++i)
+    {
+        auto *container = dynamic_cast<SplitContainer *>(notebook.getPageAt(i));
+        if (container == nullptr)
+        {
+            continue;
+        }
+
+        for (auto *split : container->getSplits())
+        {
+            if (split->getChannel()->getType() ==
+                Channel::Type::TwitchModerationLog)
+            {
+                notebook.select(container);
+                return;
+            }
+        }
+    }
+
+    auto *container = notebook.addPage(true);
+    auto *split = new Split(container);
+    split->setChannel(getApp()->getTwitch()->getModerationLogChannel());
+    container->insertSplit(split);
+}
+
 void Split::openInStreamlink()
 {
     auto chan = this->getSelectedChannel();

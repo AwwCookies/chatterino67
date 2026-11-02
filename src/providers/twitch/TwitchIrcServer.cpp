@@ -24,6 +24,7 @@
 #include "providers/seventv/SeventvPersonalEmotes.hpp"
 #include "providers/twitch/api/Helix.hpp"
 #include "providers/twitch/IrcMessageHandler.hpp"
+#include "providers/twitch/ModerationLogChannel.hpp"
 #include "providers/twitch/PubSubManager.hpp"
 #include "providers/twitch/TwitchAccount.hpp"
 #include "providers/twitch/TwitchChannel.hpp"
@@ -142,6 +143,7 @@ TwitchIrcServer::TwitchIrcServer()
     , mentionsChannel(new Channel("/mentions", Channel::Type::TwitchMentions))
     , liveChannel(new Channel("/live", Channel::Type::TwitchLive))
     , automodChannel(new Channel("/automod", Channel::Type::TwitchAutomod))
+    , moderationLogChannel(new ModerationLogChannel)
     , watchingChannel(Channel::getEmpty(), Channel::Type::TwitchWatching)
     , readConnection_(
           createTwitchConnectionPool(
@@ -474,6 +476,11 @@ std::shared_ptr<Channel> TwitchIrcServer::getCustomChannel(
         return this->automodChannel;
     }
 
+    if (channelName == "/modlog")
+    {
+        return this->moderationLogChannel;
+    }
+
     static auto getTimer = [this](ChannelPtr channel, int msBetweenMessages,
                                   bool addInitialMessages) {
         if (addInitialMessages)
@@ -585,6 +592,7 @@ void TwitchIrcServer::forEachChannelAndSpecialChannels(
     func(this->mentionsChannel);
     func(this->liveChannel);
     func(this->automodChannel);
+    func(this->moderationLogChannel);
 }
 
 std::shared_ptr<Channel> TwitchIrcServer::getChannelOrEmptyByID(
@@ -740,6 +748,11 @@ ChannelPtr TwitchIrcServer::getLiveChannel() const
 ChannelPtr TwitchIrcServer::getAutomodChannel() const
 {
     return this->automodChannel;
+}
+
+ChannelPtr TwitchIrcServer::getModerationLogChannel() const
+{
+    return this->moderationLogChannel;
 }
 
 QString TwitchIrcServer::getLastUserThatWhisperedMe() const

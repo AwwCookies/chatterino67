@@ -72,6 +72,7 @@ public:
     virtual ChannelPtr getMentionsChannel() const = 0;
     virtual ChannelPtr getLiveChannel() const = 0;
     virtual ChannelPtr getAutomodChannel() const = 0;
+    virtual ChannelPtr getModerationLogChannel() const = 0;
 
     virtual QString getLastUserThatWhisperedMe() const = 0;
     virtual void setLastUserThatWhisperedMe(const QString &user) = 0;
@@ -156,6 +157,7 @@ private:
     const ChannelPtr mentionsChannel;
     const ChannelPtr liveChannel;
     const ChannelPtr automodChannel;
+    const ChannelPtr moderationLogChannel;
     IndirectChannel watchingChannel;
 
 public:
@@ -165,6 +167,7 @@ public:
     ChannelPtr getMentionsChannel() const override;
     ChannelPtr getLiveChannel() const override;
     ChannelPtr getAutomodChannel() const override;
+    ChannelPtr getModerationLogChannel() const override;
 
     QString getLastUserThatWhisperedMe() const override;
     void setLastUserThatWhisperedMe(const QString &user) override;
