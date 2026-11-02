@@ -1306,9 +1306,29 @@ void Split::openModerationLogPanel()
         }
     }
 
+    auto logChannel = getApp()->getTwitch()->getModerationLogChannel();
+
+    // Dock the panel to the right of this split so both stay resizable
+    if (auto *container = dynamic_cast<SplitContainer *>(this->parentWidget()))
+    {
+        auto *logSplit = new Split(container);
+        logSplit->setChannel(logChannel);
+        container->insertSplit(logSplit, {
+                                               .relativeSplit = this,
+                                               .direction = SplitDirection::Right,
+                                           });
+
+        // Give the log roughly 30% of the width, the chat keeps the rest.
+        // The divider can be dragged afterwards.
+        container->setSplitFlex(this, 7);
+        container->setSplitFlex(logSplit, 3);
+        return;
+    }
+
+    // Fall back to a dedicated tab
     auto *container = notebook.addPage(true);
     auto *split = new Split(container);
-    split->setChannel(getApp()->getTwitch()->getModerationLogChannel());
+    split->setChannel(logChannel);
     container->insertSplit(split);
 }
 

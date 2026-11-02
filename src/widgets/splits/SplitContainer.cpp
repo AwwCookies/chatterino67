@@ -794,6 +794,27 @@ std::vector<Split *> SplitContainer::getSplits() const
     return this->splits_;
 }
 
+void SplitContainer::setSplitFlex(Split *split, qreal flex)
+{
+    if (split == nullptr || this->baseNode_ == nullptr || flex <= 0)
+    {
+        return;
+    }
+
+    auto *node = this->baseNode_->findNodeContainingSplit(split);
+    if (node == nullptr)
+    {
+        return;
+    }
+
+    // Only one of these is used, depending on the container's orientation
+    node->flexH_ = flex;
+    node->flexV_ = flex;
+
+    this->layout();
+    getApp()->getWindows()->queueSave();
+}
+
 SplitContainer::Node *SplitContainer::getBaseNode()
 {
     return this->baseNode_.get();

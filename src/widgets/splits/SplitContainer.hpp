@@ -218,6 +218,10 @@ public:
 
     std::vector<Split *> getSplits() const;
 
+    /// Sets how much space the node containing `split` takes relative to its
+    /// siblings, e.g. 7 against a sibling's 3 gives it 70% of the space.
+    void setSplitFlex(Split *split, qreal flex);
+
     void refreshTab();
 
     NotebookTab *getTab() const;
