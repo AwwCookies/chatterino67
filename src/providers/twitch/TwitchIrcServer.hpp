@@ -21,12 +21,14 @@
 #include <memory>
 #include <mutex>
 #include <queue>
+#include <unordered_map>
 
 namespace chatterino {
 
 class Settings;
 class Paths;
 class TwitchChannel;
+class ModerationLogChannel;
 class BttvEmotes;
 class FfzEmotes;
 class SeventvEmotes;
@@ -73,6 +75,12 @@ public:
     virtual ChannelPtr getLiveChannel() const = 0;
     virtual ChannelPtr getAutomodChannel() const = 0;
     virtual ChannelPtr getModerationLogChannel() const = 0;
+    /// Log that only collects actions from `sourceChannel` (created on demand)
+    virtual ChannelPtr getModerationLogChannelFor(
+        const QString &sourceChannel) = 0;
+    /// Same as above, but returns nullptr if that log doesn't exist yet
+    virtual ChannelPtr findModerationLogChannelFor(
+        const QString &sourceChannel) const = 0;
 
     virtual QString getLastUserThatWhisperedMe() const = 0;
     virtual void setLastUserThatWhisperedMe(const QString &user) = 0;
@@ -158,6 +166,9 @@ private:
     const ChannelPtr liveChannel;
     const ChannelPtr automodChannel;
     const ChannelPtr moderationLogChannel;
+    /// Per-channel moderation logs, keyed by the source channel's name
+    std::unordered_map<QString, std::shared_ptr<ModerationLogChannel>>
+        moderationLogChannels_;
     IndirectChannel watchingChannel;
 
 public:
@@ -168,6 +179,9 @@ public:
     ChannelPtr getLiveChannel() const override;
     ChannelPtr getAutomodChannel() const override;
     ChannelPtr getModerationLogChannel() const override;
+    ChannelPtr getModerationLogChannelFor(const QString &sourceChannel) override;
+    ChannelPtr findModerationLogChannelFor(
+        const QString &sourceChannel) const override;
 
     QString getLastUserThatWhisperedMe() const override;
     void setLastUserThatWhisperedMe(const QString &user) override;

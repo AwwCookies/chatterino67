@@ -165,6 +165,18 @@ public:
         return this->moderationLogChannel;
     }
 
+    ChannelPtr getModerationLogChannelFor(
+        const QString & /* sourceChannel */) override
+    {
+        return this->moderationLogChannel;
+    }
+
+    ChannelPtr findModerationLogChannelFor(
+        const QString & /* sourceChannel */) const override
+    {
+        return nullptr;
+    }
+
     bool isModeratorIn(const QString & /* login */) const override
     {
         return false;

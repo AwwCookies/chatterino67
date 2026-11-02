@@ -15,6 +15,7 @@
 #include "providers/kick/KickAccount.hpp"
 #include "providers/kick/KickChannel.hpp"
 #include "providers/twitch/TwitchAccount.hpp"
+#include "providers/twitch/ModerationLogChannel.hpp"
 #include "providers/twitch/TwitchChannel.hpp"
 #include "providers/twitch/TwitchIrcServer.hpp"
 #include "singletons/Fonts.hpp"
@@ -1285,8 +1286,24 @@ void Split::openModerationLogPanel()
     }
 
     auto &notebook = window->getNotebook();
+    auto *twitch = getApp()->getTwitch();
 
-    // Focus an existing moderation log panel instead of opening another one
+    // Prefer a log that only shows the actions of this split's channel
+    auto currentChannel = this->getChannel();
+    ChannelPtr logChannel;
+    if (currentChannel != nullptr &&
+        (currentChannel->getType() == Channel::Type::Twitch ||
+         currentChannel->getType() == Channel::Type::Kick))
+    {
+        logChannel =
+            twitch->getModerationLogChannelFor(currentChannel->getName());
+    }
+    if (logChannel == nullptr)
+    {
+        logChannel = twitch->getModerationLogChannel();
+    }
+
+    // Focus an existing pane showing this log instead of opening another one
     for (int i = 0; i < notebook.getPageCount(); ++i)
     {
         auto *container = dynamic_cast<SplitContainer *>(notebook.getPageAt(i));
@@ -1297,16 +1314,13 @@ void Split::openModerationLogPanel()
 
         for (auto *split : container->getSplits())
         {
-            if (split->getChannel()->getType() ==
-                Channel::Type::TwitchModerationLog)
+            if (split->getChannel() == logChannel)
             {
                 notebook.select(container);
                 return;
             }
         }
     }
-
-    auto logChannel = getApp()->getTwitch()->getModerationLogChannel();
 
     // Dock the panel to the right of this split so both stay resizable
     if (auto *container = dynamic_cast<SplitContainer *>(this->parentWidget()))
@@ -1566,6 +1580,17 @@ SplitDescriptor Split::buildDescriptor() const
                 }
                 descriptor.mcIndicator = mc->indicatorMode();
                 descriptor.mcIndex = mc->activeChannelIndex();
+            }
+        }
+        break;
+
+        case Channel::Type::TwitchModerationLog: {
+            // Per-channel logs remember which channel they show
+            auto *log =
+                dynamic_cast<ModerationLogChannel *>(chan.get().get());
+            if (log != nullptr)
+            {
+                descriptor.channelName_ = log->sourceChannel();
             }
         }
         break;

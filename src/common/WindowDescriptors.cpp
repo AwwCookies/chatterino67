@@ -216,7 +216,12 @@ IndirectChannel SplitDescriptor::decodeChannel() const
         case Channel::Type::TwitchAutomod:
             return getApp()->getTwitch()->getAutomodChannel();
         case Channel::Type::TwitchModerationLog:
-            return getApp()->getTwitch()->getModerationLogChannel();
+            if (this->channelName_.isEmpty())
+            {
+                return getApp()->getTwitch()->getModerationLogChannel();
+            }
+            return getApp()->getTwitch()->getModerationLogChannelFor(
+                this->channelName_);
         case Channel::Type::Misc:
             return getApp()->getTwitch()->getChannelOrEmpty(this->channelName_);
         case Channel::Type::Kick:

@@ -755,6 +755,50 @@ ChannelPtr TwitchIrcServer::getModerationLogChannel() const
     return this->moderationLogChannel;
 }
 
+ChannelPtr TwitchIrcServer::getModerationLogChannelFor(
+    const QString &sourceChannel)
+{
+    if (sourceChannel.isEmpty())
+    {
+        return this->moderationLogChannel;
+    }
+
+    const auto key = sourceChannel.toLower();
+
+    auto it = this->moderationLogChannels_.find(key);
+    if (it != this->moderationLogChannels_.end())
+    {
+        return it->second;
+    }
+
+    auto log = std::make_shared<ModerationLogChannel>(sourceChannel);
+    this->moderationLogChannels_.emplace(key, log);
+
+    // Fill the new log with the actions we already have for that channel
+    if (auto channel = this->getChannelOrEmpty(sourceChannel);
+        channel != nullptr && !channel->isEmpty())
+    {
+        for (const auto &message : channel->getMessageSnapshot())
+        {
+            log->addModerationAction(*channel, message);
+        }
+    }
+
+    return log;
+}
+
+ChannelPtr TwitchIrcServer::findModerationLogChannelFor(
+    const QString &sourceChannel) const
+{
+    auto it = this->moderationLogChannels_.find(sourceChannel.toLower());
+    if (it != this->moderationLogChannels_.end())
+    {
+        return it->second;
+    }
+
+    return nullptr;
+}
+
 QString TwitchIrcServer::getLastUserThatWhisperedMe() const
 {
     return this->lastUserThatWhisperedMe.get();

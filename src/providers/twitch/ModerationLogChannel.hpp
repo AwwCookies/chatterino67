@@ -21,10 +21,17 @@ namespace chatterino {
 class ModerationLogChannel final : public Channel
 {
 public:
+    /// Log that collects moderation actions from every channel
     ModerationLogChannel();
+
+    /// Log that only collects moderation actions from `sourceChannel`
+    explicit ModerationLogChannel(QString sourceChannel);
 
     const QString &getDisplayName() const override;
     const QString &getLocalizedName() const override;
+
+    /// The channel this log only shows actions for. Empty for the global log.
+    const QString &sourceChannel() const;
 
     /**
      * @brief Checks if a message is a moderation action
@@ -43,6 +50,7 @@ public:
     void addModerationAction(const Channel &source, const MessagePtr &action);
 
 private:
+    QString sourceChannel_;
     QString displayName_;
 };
 

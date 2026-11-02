@@ -175,6 +175,14 @@ ModerationLogChannel::ModerationLogChannel()
 {
 }
 
+ModerationLogChannel::ModerationLogChannel(QString sourceChannel)
+    : Channel("/modlog:" + sourceChannel, Channel::Type::TwitchModerationLog)
+    , sourceChannel_(std::move(sourceChannel))
+    , displayName_(QStringLiteral("Moderation Log (#") + this->sourceChannel_ +
+                   u')')
+{
+}
+
 const QString &ModerationLogChannel::getDisplayName() const
 {
     return this->displayName_;
@@ -183,6 +191,11 @@ const QString &ModerationLogChannel::getDisplayName() const
 const QString &ModerationLogChannel::getLocalizedName() const
 {
     return this->displayName_;
+}
+
+const QString &ModerationLogChannel::sourceChannel() const
+{
+    return this->sourceChannel_;
 }
 
 bool ModerationLogChannel::isModerationAction(const MessagePtr &message)
@@ -200,6 +213,14 @@ void ModerationLogChannel::addModerationAction(const Channel &source,
                                                const MessagePtr &action)
 {
     if (action == nullptr || !isModerationAction(action))
+    {
+        return;
+    }
+
+    // Per-channel logs only care about their own channel
+    if (!this->sourceChannel_.isEmpty() &&
+        this->sourceChannel_.compare(source.getName(), Qt::CaseInsensitive) !=
+            0)
     {
         return;
     }
@@ -257,12 +278,18 @@ void forwardModerationAction(const Channel &source, const MessagePtr &message)
 
     auto logChannel = std::dynamic_pointer_cast<ModerationLogChannel>(
         twitch->getModerationLogChannel());
-    if (logChannel == nullptr)
+    if (logChannel != nullptr)
     {
-        return;
+        logChannel->addModerationAction(source, message);
     }
 
-    logChannel->addModerationAction(source, message);
+    // Panes that only show one channel get their own log
+    auto perChannel = std::dynamic_pointer_cast<ModerationLogChannel>(
+        twitch->findModerationLogChannelFor(source.getName()));
+    if (perChannel != nullptr && perChannel != logChannel)
+    {
+        perChannel->addModerationAction(source, message);
+    }
 }
 
 }  // namespace chatterino
