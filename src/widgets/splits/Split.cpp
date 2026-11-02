@@ -1301,6 +1301,14 @@ void Split::openMirrorPanel(MirrorKind kind)
 
     // Prefer a mirror that only shows this split's channel
     auto currentChannel = this->getChannel();
+    // Multi channels: scope the panel to the channel that's currently active
+    if (auto *multi = dynamic_cast<MultiChannel *>(currentChannel.get()))
+    {
+        if (const auto *active = multi->activeChannel())
+        {
+            currentChannel = active->channel;
+        }
+    }
     ChannelPtr mirrorChannel;
     if (currentChannel != nullptr &&
         (currentChannel->getType() == Channel::Type::Twitch ||
