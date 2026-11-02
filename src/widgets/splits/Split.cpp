@@ -41,6 +41,7 @@
 #include "widgets/Scrollbar.hpp"
 #include "widgets/splits/DraggedSplit.hpp"
 #include "widgets/splits/PinnedMessageWidget.hpp"
+#include "widgets/splits/RecentEmoteButton.hpp"
 #include "widgets/splits/SplitContainer.hpp"
 #include "widgets/splits/SplitHeader.hpp"
 #include "widgets/splits/SplitInput.hpp"
@@ -101,6 +102,7 @@ Split::Split(QWidget *parent)
     , view_(new ChannelView(this, this, ChannelView::Context::None,
                             getSettings()->scrollbackSplitLimit))
     , input_(new SplitInput(this))
+    , recentEmote_(new RecentEmoteButton(this))
     , overlay_(new SplitOverlay(this))
 {
     this->setMouseTracking(true);
@@ -114,6 +116,9 @@ Split::Split(QWidget *parent)
     this->vbox_->addWidget(this->header_);
     this->vbox_->addWidget(this->pinnedBanner_);
     this->vbox_->addWidget(this->view_, 1);
+    // right-aligned, directly above the input box
+    this->vbox_->insertWidget(this->vbox_->count(), this->recentEmote_, 0,
+                              Qt::AlignRight);
     this->vbox_->addWidget(this->input_);
 
     this->input_->ui_.textEdit->installEventFilter(parent);
@@ -131,6 +136,20 @@ Split::Split(QWidget *parent)
             this->updateInputPlaceholder();
         });
     this->updateInputPlaceholder();
+
+    // most used emote of this channel, shown above the input box
+    QObject::connect(
+        this->recentEmote_, &RecentEmoteButton::emoteClicked, this,
+        [this](const QString &emoteName) {
+            if (auto channel = this->getChannel())
+            {
+                channel->sendMessage(emoteName);
+            }
+        });
+    this->signalHolder_.managedConnect(this->channelChanged, [this] {
+        this->recentEmote_->setChannel(this->getChannel());
+    });
+    this->recentEmote_->setChannel(this->getChannel());
 
     // clear SplitInput selection when selecting in ChannelView
     // this connection can be ignored since the ChannelView is owned by this Split

@@ -987,6 +987,8 @@ set(SOURCE_FILES
         widgets/splits/SplitOverlay.hpp
         widgets/splits/PinnedMessageWidget.cpp
         widgets/splits/PinnedMessageWidget.hpp
+        widgets/splits/RecentEmoteButton.cpp
+        widgets/splits/RecentEmoteButton.hpp
         )
 
 if (APPLE)

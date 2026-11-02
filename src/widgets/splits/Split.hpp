@@ -21,6 +21,7 @@ namespace chatterino {
 class ChannelView;
 class SplitHeader;
 class SplitInput;
+class RecentEmoteButton;
 class SplitContainer;
 class SplitOverlay;
 class PinnedMessageWidget;
@@ -181,6 +182,7 @@ private:
     PinnedMessageWidget *const pinnedBanner_;
     ChannelView *const view_;
     SplitInput *const input_;
+    RecentEmoteButton *const recentEmote_;
     SplitOverlay *const overlay_;
 
     QPointer<OverlayWindow> overlayWindow_;
