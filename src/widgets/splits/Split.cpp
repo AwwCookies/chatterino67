@@ -14,8 +14,8 @@
 #include "controllers/notifications/NotificationController.hpp"
 #include "providers/kick/KickAccount.hpp"
 #include "providers/kick/KickChannel.hpp"
+#include "providers/twitch/MirrorChannel.hpp"
 #include "providers/twitch/TwitchAccount.hpp"
-#include "providers/twitch/ModerationLogChannel.hpp"
 #include "providers/twitch/TwitchChannel.hpp"
 #include "providers/twitch/TwitchIrcServer.hpp"
 #include "singletons/Fonts.hpp"
@@ -1279,6 +1279,16 @@ void Split::openModViewInBrowser()
 
 void Split::openModerationLogPanel()
 {
+    this->openMirrorPanel(MirrorKind::ModerationLog);
+}
+
+void Split::openFirstMessagePanel()
+{
+    this->openMirrorPanel(MirrorKind::FirstMessages);
+}
+
+void Split::openMirrorPanel(MirrorKind kind)
+{
     auto *window = dynamic_cast<Window *>(this->window());
     if (window == nullptr)
     {
@@ -1287,23 +1297,26 @@ void Split::openModerationLogPanel()
 
     auto &notebook = window->getNotebook();
     auto *twitch = getApp()->getTwitch();
+    const auto isModerationLog = kind == MirrorKind::ModerationLog;
 
-    // Prefer a log that only shows the actions of this split's channel
+    // Prefer a mirror that only shows this split's channel
     auto currentChannel = this->getChannel();
-    ChannelPtr logChannel;
+    ChannelPtr mirrorChannel;
     if (currentChannel != nullptr &&
         (currentChannel->getType() == Channel::Type::Twitch ||
          currentChannel->getType() == Channel::Type::Kick))
     {
-        logChannel =
-            twitch->getModerationLogChannelFor(currentChannel->getName());
+        const auto &name = currentChannel->getName();
+        mirrorChannel = isModerationLog ? twitch->getModerationLogChannelFor(name)
+                                        : twitch->getFirstMessageChannelFor(name);
     }
-    if (logChannel == nullptr)
+    if (mirrorChannel == nullptr)
     {
-        logChannel = twitch->getModerationLogChannel();
+        mirrorChannel = isModerationLog ? twitch->getModerationLogChannel()
+                                        : twitch->getFirstMessageChannel();
     }
 
-    // Focus an existing pane showing this log instead of opening another one
+    // Focus an existing pane showing this channel instead of opening another
     for (int i = 0; i < notebook.getPageCount(); ++i)
     {
         auto *container = dynamic_cast<SplitContainer *>(notebook.getPageAt(i));
@@ -1314,7 +1327,7 @@ void Split::openModerationLogPanel()
 
         for (auto *split : container->getSplits())
         {
-            if (split->getChannel() == logChannel)
+            if (split->getChannel() == mirrorChannel)
             {
                 notebook.select(container);
                 return;
@@ -1325,24 +1338,24 @@ void Split::openModerationLogPanel()
     // Dock the panel to the right of this split so both stay resizable
     if (auto *container = dynamic_cast<SplitContainer *>(this->parentWidget()))
     {
-        auto *logSplit = new Split(container);
-        logSplit->setChannel(logChannel);
-        container->insertSplit(logSplit, {
-                                               .relativeSplit = this,
-                                               .direction = SplitDirection::Right,
-                                           });
+        auto *mirrorSplit = new Split(container);
+        mirrorSplit->setChannel(mirrorChannel);
+        container->insertSplit(mirrorSplit, {
+                                                .relativeSplit = this,
+                                                .direction = SplitDirection::Right,
+                                            });
 
-        // Give the log roughly 30% of the width, the chat keeps the rest.
+        // Give the panel roughly 30% of the width, the chat keeps the rest.
         // The divider can be dragged afterwards.
         container->setSplitFlex(this, 7);
-        container->setSplitFlex(logSplit, 3);
+        container->setSplitFlex(mirrorSplit, 3);
         return;
     }
 
     // Fall back to a dedicated tab
     auto *container = notebook.addPage(true);
     auto *split = new Split(container);
-    split->setChannel(logChannel);
+    split->setChannel(mirrorChannel);
     container->insertSplit(split);
 }
 
@@ -1584,13 +1597,13 @@ SplitDescriptor Split::buildDescriptor() const
         }
         break;
 
-        case Channel::Type::TwitchModerationLog: {
-            // Per-channel logs remember which channel they show
-            auto *log =
-                dynamic_cast<ModerationLogChannel *>(chan.get().get());
-            if (log != nullptr)
+        case Channel::Type::TwitchModerationLog:
+        case Channel::Type::TwitchFirstMessages: {
+            // Per-channel mirrors remember which channel they show
+            auto *mirror = dynamic_cast<MirrorChannel *>(chan.get().get());
+            if (mirror != nullptr)
             {
-                descriptor.channelName_ = log->sourceChannel();
+                descriptor.channelName_ = mirror->sourceChannel();
             }
         }
         break;

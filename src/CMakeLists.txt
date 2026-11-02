@@ -545,8 +545,8 @@ set(SOURCE_FILES
         providers/twitch/ChannelPointReward.hpp
         providers/twitch/IrcMessageHandler.cpp
         providers/twitch/IrcMessageHandler.hpp
-        providers/twitch/ModerationLogChannel.cpp
-        providers/twitch/ModerationLogChannel.hpp
+        providers/twitch/MirrorChannel.cpp
+        providers/twitch/MirrorChannel.hpp
         providers/twitch/PubSubClient.cpp
         providers/twitch/PubSubClient.hpp
         providers/twitch/PubSubManager.cpp

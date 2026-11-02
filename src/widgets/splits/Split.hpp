@@ -28,6 +28,7 @@ class SelectChannelDialog;
 class OverlayWindow;
 
 struct SplitDescriptor;
+enum class MirrorKind : std::uint8_t;
 
 // Each ChatWidget consists of three sub-elements that handle their own part of
 // the chat widget: ChatWidgetHeader
@@ -135,6 +136,9 @@ private:
     void updateInputPlaceholder();
     void addShortcuts() override;
 
+    /// Docks (or focuses) the mirror panel of `kind` for this split's channel
+    void openMirrorPanel(MirrorKind kind);
+
     /**
      * @brief Opens a Twitch channel's stream in your default browser's player (opens a formatted link)
      */
@@ -208,6 +212,7 @@ public Q_SLOTS:
     void openInBrowser();
     void openModViewInBrowser();
     void openModerationLogPanel();
+    void openFirstMessagePanel();
     void openWhispersInBrowser();
     void openBrowserPlayer();
     void openInStreamlink();

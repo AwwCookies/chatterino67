@@ -308,6 +308,25 @@ SelectChannelDialog::SelectChannelDialog(QWidget *parent)
 
     ui.moderationLog->installEventFilter(&this->tabFilter_);
 
+    // First time chatters
+    ui.firstMessages = new AutoCheckedRadioButton("First Time Chatters");
+    layout->addWidget(ui.firstMessages);
+
+    ui.firstMessagesLabel = new QLabel(
+        "Shows the first message users send in a channel, from every channel "
+        "you have open");
+    ui.firstMessagesLabel->setVisible(false);
+    ui.firstMessagesLabel->setWordWrap(true);
+    layout->addWidget(ui.firstMessagesLabel);
+
+    QObject::connect(ui.firstMessages, &AutoCheckedRadioButton::toggled, this,
+                     [this](bool enabled) {
+                         auto &ui = this->ui_;
+                         ui.firstMessagesLabel->setVisible(enabled);
+                     });
+
+    ui.firstMessages->installEventFilter(&this->tabFilter_);
+
     layout->addStretch(1);
 
     ui.notebook->addPage(ui.twitchPage, "Twitch");
@@ -475,6 +494,10 @@ void SelectChannelDialog::setSelectedChannel(
             this->ui_.moderationLog->setFocus();
         }
         break;
+        case Channel::Type::TwitchFirstMessages: {
+            this->ui_.firstMessages->setFocus();
+        }
+        break;
         case Channel::Type::Kick: {
             this->ui_.kickName->setText(channel->getName());
             this->ui_.kickName->selectAll();
@@ -581,6 +604,11 @@ IndirectChannel SelectChannelDialog::getSelectedChannel() const
         return getApp()->getTwitch()->getModerationLogChannel();
     }
 
+    if (this->ui_.firstMessages->isChecked())
+    {
+        return getApp()->getTwitch()->getFirstMessageChannel();
+    }
+
     return this->selectedChannel_;
 }
 
@@ -615,9 +643,9 @@ bool SelectChannelDialog::EventFilter::eventFilter(QObject *watched,
                 return true;
             }
 
-            if (widget == ui.moderationLog)
+            if (widget == ui.firstMessages)
             {
-                // Special case for when current selection is "Moderation Log" (the last entry in the list), next wrap is Channel, but we need to select its edit box
+                // Special case for when current selection is "First Time Chatters" (the last entry in the list), next wrap is Channel, but we need to select its edit box
                 ui.channel->setFocus();
                 return true;
             }
@@ -643,7 +671,7 @@ bool SelectChannelDialog::EventFilter::eventFilter(QObject *watched,
             if (widget == ui.channelName)
             {
                 // Special case for when current selection is the "Channel" entry's edit box since the Edit box actually has the focus
-                ui.moderationLog->setFocus();
+                ui.firstMessages->setFocus();
                 return true;
             }
 

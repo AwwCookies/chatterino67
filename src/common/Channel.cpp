@@ -10,7 +10,7 @@
 #include "messages/MessageBuilder.hpp"
 #include "messages/MessageElement.hpp"
 #include "messages/MessageSimilarity.hpp"
-#include "providers/twitch/ModerationLogChannel.hpp"
+#include "providers/twitch/MirrorChannel.hpp"
 #include "singletons/Logging.hpp"
 #include "singletons/Settings.hpp"
 #include "util/ChannelHelpers.hpp"
@@ -111,6 +111,12 @@ bool Channel::isTwitchOrKickChannel() const
     return this->isTwitchChannel() || this->isKickChannel();
 }
 
+bool Channel::isMirrorChannelType() const
+{
+    return this->type_ == Type::TwitchModerationLog ||
+           this->type_ == Type::TwitchFirstMessages;
+}
+
 bool Channel::isEmpty() const
 {
     return this->name_.isEmpty();
@@ -190,11 +196,11 @@ void Channel::addMessage(MessagePtr message, MessageContext context,
 
     this->messageAppended.invoke(message, overridingFlags);
 
-    // Mirror moderation actions into the global moderation log panel
+    // Mirror interesting messages (mod actions, first messages) into the panels
     if (context == MessageContext::Original &&
         (this->getType() == Type::Twitch || this->getType() == Type::Kick))
     {
-        forwardModerationAction(*this, message);
+        forwardMirroredMessage(*this, message);
     }
 }
 

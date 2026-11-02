@@ -24,7 +24,7 @@
 #include "providers/seventv/SeventvPersonalEmotes.hpp"
 #include "providers/twitch/api/Helix.hpp"
 #include "providers/twitch/IrcMessageHandler.hpp"
-#include "providers/twitch/ModerationLogChannel.hpp"
+#include "providers/twitch/MirrorChannel.hpp"
 #include "providers/twitch/PubSubManager.hpp"
 #include "providers/twitch/TwitchAccount.hpp"
 #include "providers/twitch/TwitchChannel.hpp"
@@ -143,7 +143,8 @@ TwitchIrcServer::TwitchIrcServer()
     , mentionsChannel(new Channel("/mentions", Channel::Type::TwitchMentions))
     , liveChannel(new Channel("/live", Channel::Type::TwitchLive))
     , automodChannel(new Channel("/automod", Channel::Type::TwitchAutomod))
-    , moderationLogChannel(new ModerationLogChannel)
+    , moderationLogChannel(new MirrorChannel(MirrorKind::ModerationLog))
+    , firstMessageChannel(new MirrorChannel(MirrorKind::FirstMessages))
     , watchingChannel(Channel::getEmpty(), Channel::Type::TwitchWatching)
     , readConnection_(
           createTwitchConnectionPool(
@@ -481,6 +482,11 @@ std::shared_ptr<Channel> TwitchIrcServer::getCustomChannel(
         return this->moderationLogChannel;
     }
 
+    if (channelName == "/firstmsg")
+    {
+        return this->firstMessageChannel;
+    }
+
     static auto getTimer = [this](ChannelPtr channel, int msBetweenMessages,
                                   bool addInitialMessages) {
         if (addInitialMessages)
@@ -593,6 +599,7 @@ void TwitchIrcServer::forEachChannelAndSpecialChannels(
     func(this->liveChannel);
     func(this->automodChannel);
     func(this->moderationLogChannel);
+    func(this->firstMessageChannel);
 }
 
 std::shared_ptr<Channel> TwitchIrcServer::getChannelOrEmptyByID(
@@ -755,48 +762,86 @@ ChannelPtr TwitchIrcServer::getModerationLogChannel() const
     return this->moderationLogChannel;
 }
 
-ChannelPtr TwitchIrcServer::getModerationLogChannelFor(
-    const QString &sourceChannel)
+ChannelPtr TwitchIrcServer::getFirstMessageChannel() const
+{
+    return this->firstMessageChannel;
+}
+
+ChannelPtr TwitchIrcServer::getMirrorChannel(MirrorKind kind,
+                                             const QString &sourceChannel)
 {
     if (sourceChannel.isEmpty())
     {
-        return this->moderationLogChannel;
+        return kind == MirrorKind::ModerationLog ? this->moderationLogChannel
+                                                 : this->firstMessageChannel;
     }
 
-    const auto key = sourceChannel.toLower();
+    const auto key = MirrorChannel::channelName(kind, sourceChannel.toLower());
 
-    auto it = this->moderationLogChannels_.find(key);
-    if (it != this->moderationLogChannels_.end())
+    auto it = this->mirrorChannels_.find(key);
+    if (it != this->mirrorChannels_.end())
     {
         return it->second;
     }
 
-    auto log = std::make_shared<ModerationLogChannel>(sourceChannel);
-    this->moderationLogChannels_.emplace(key, log);
+    auto mirror = std::make_shared<MirrorChannel>(kind, sourceChannel);
+    this->mirrorChannels_.emplace(key, mirror);
 
-    // Fill the new log with the actions we already have for that channel
+    // Fill the new mirror with the messages we already have for that channel
     if (auto channel = this->getChannelOrEmpty(sourceChannel);
         channel != nullptr && !channel->isEmpty())
     {
         for (const auto &message : channel->getMessageSnapshot())
         {
-            log->addModerationAction(*channel, message);
+            mirror->mirror(*channel, message);
         }
     }
 
-    return log;
+    return mirror;
 }
 
-ChannelPtr TwitchIrcServer::findModerationLogChannelFor(
-    const QString &sourceChannel) const
+ChannelPtr TwitchIrcServer::findMirrorChannel(
+    MirrorKind kind, const QString &sourceChannel) const
 {
-    auto it = this->moderationLogChannels_.find(sourceChannel.toLower());
-    if (it != this->moderationLogChannels_.end())
+    if (sourceChannel.isEmpty())
+    {
+        return kind == MirrorKind::ModerationLog ? this->moderationLogChannel
+                                                 : this->firstMessageChannel;
+    }
+
+    const auto key = MirrorChannel::channelName(kind, sourceChannel.toLower());
+
+    auto it = this->mirrorChannels_.find(key);
+    if (it != this->mirrorChannels_.end())
     {
         return it->second;
     }
 
     return nullptr;
+}
+
+ChannelPtr TwitchIrcServer::getModerationLogChannelFor(
+    const QString &sourceChannel)
+{
+    return this->getMirrorChannel(MirrorKind::ModerationLog, sourceChannel);
+}
+
+ChannelPtr TwitchIrcServer::findModerationLogChannelFor(
+    const QString &sourceChannel) const
+{
+    return this->findMirrorChannel(MirrorKind::ModerationLog, sourceChannel);
+}
+
+ChannelPtr TwitchIrcServer::getFirstMessageChannelFor(
+    const QString &sourceChannel)
+{
+    return this->getMirrorChannel(MirrorKind::FirstMessages, sourceChannel);
+}
+
+ChannelPtr TwitchIrcServer::findFirstMessageChannelFor(
+    const QString &sourceChannel) const
+{
+    return this->findMirrorChannel(MirrorKind::FirstMessages, sourceChannel);
 }
 
 QString TwitchIrcServer::getLastUserThatWhisperedMe() const

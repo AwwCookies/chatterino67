@@ -58,6 +58,8 @@ public:
         TwitchAutomod,
         /// TwitchModerationLog
         TwitchModerationLog,
+        /// TwitchFirstMessages
+        TwitchFirstMessages,
         /// TwitchEnd
         TwitchEnd,
         Kick,
@@ -88,6 +90,8 @@ public:
     bool isTwitchChannel() const;
     bool isKickChannel() const;
     bool isTwitchOrKickChannel() const;
+    /// true for the mirror panel channels (moderation log, first time chatters)
+    bool isMirrorChannelType() const;
     virtual bool isEmpty() const;
 
     std::vector<MessagePtr> getMessageSnapshot() const;
@@ -234,6 +238,8 @@ constexpr std::optional<std::string_view> qmagicenumSerializedName(
             return "automod";
         case Type::TwitchModerationLog:
             return "modlog";
+        case Type::TwitchFirstMessages:
+            return "firstmsg";
         case Type::TwitchMentions:
             return "mentions";
         case Type::TwitchWatching:

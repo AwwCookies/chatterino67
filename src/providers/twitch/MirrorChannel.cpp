@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-#include "providers/twitch/ModerationLogChannel.hpp"
+#include "providers/twitch/MirrorChannel.hpp"
 
 #include "Application.hpp"
 #include "messages/Message.hpp"
@@ -40,7 +40,7 @@ void insertAfterTimestamp(
 }
 
 /**
- * @brief Prepares a copy of a message so it can be added to the log
+ * @brief Prepares a copy of a message so it can be added to a mirror
  *
  * - the message is tagged with the channel it happened in
  * - the channel name is prepended (if the message doesn't have it already)
@@ -168,56 +168,105 @@ MessagePtr findLastMessageFrom(const Channel &source, const QString &userName,
 
 }  // namespace
 
-
-ModerationLogChannel::ModerationLogChannel()
-    : Channel("/modlog", Channel::Type::TwitchModerationLog)
-    , displayName_(QStringLiteral("Moderation Log"))
+MirrorChannel::MirrorChannel(MirrorKind kind)
+    : MirrorChannel(std::move(kind), QString{})
 {
 }
 
-ModerationLogChannel::ModerationLogChannel(QString sourceChannel)
-    : Channel("/modlog:" + sourceChannel, Channel::Type::TwitchModerationLog)
+MirrorChannel::MirrorChannel(MirrorKind kind, QString sourceChannel)
+    : Channel(channelName(kind, sourceChannel),
+              kind == MirrorKind::ModerationLog
+                  ? Channel::Type::TwitchModerationLog
+                  : Channel::Type::TwitchFirstMessages)
+    , kind_(kind)
     , sourceChannel_(std::move(sourceChannel))
-    , displayName_(QStringLiteral("Moderation Log (#") + this->sourceChannel_ +
-                   u')')
+    , displayName_(displayName(kind, this->sourceChannel_))
 {
 }
 
-const QString &ModerationLogChannel::getDisplayName() const
-{
-    return this->displayName_;
-}
-
-const QString &ModerationLogChannel::getLocalizedName() const
+const QString &MirrorChannel::getDisplayName() const
 {
     return this->displayName_;
 }
 
-const QString &ModerationLogChannel::sourceChannel() const
+const QString &MirrorChannel::getLocalizedName() const
+{
+    return this->displayName_;
+}
+
+MirrorKind MirrorChannel::kind() const
+{
+    return this->kind_;
+}
+
+const QString &MirrorChannel::sourceChannel() const
 {
     return this->sourceChannel_;
 }
 
-bool ModerationLogChannel::isModerationAction(const MessagePtr &message)
+QString MirrorChannel::channelName(MirrorKind kind,
+                                   const QString &sourceChannel)
 {
-    return message->flags.hasAny({MessageFlag::ModerationAction,
-                                  MessageFlag::Timeout, MessageFlag::ClearChat,
-                                  MessageFlag::AutoMod,
-                                  MessageFlag::AutoModOffendingMessageHeader,
-                                  MessageFlag::AutoModOffendingMessage,
-                                  MessageFlag::AutoModBlockedTerm,
-                                  MessageFlag::LowTrustUsers});
+    const auto base = kind == MirrorKind::ModerationLog
+                          ? QStringLiteral("/modlog")
+                          : QStringLiteral("/firstmsg");
+
+    if (sourceChannel.isEmpty())
+    {
+        return base;
+    }
+
+    return base + u':' + sourceChannel;
 }
 
-void ModerationLogChannel::addModerationAction(const Channel &source,
-                                               const MessagePtr &action)
+QString MirrorChannel::displayName(MirrorKind kind,
+                                   const QString &sourceChannel)
 {
-    if (action == nullptr || !isModerationAction(action))
+    const auto base = kind == MirrorKind::ModerationLog
+                          ? QStringLiteral("Moderation Log")
+                          : QStringLiteral("First Time Chatters");
+
+    if (sourceChannel.isEmpty())
+    {
+        return base;
+    }
+
+    return base + QStringLiteral(" (#") + sourceChannel + u')';
+}
+
+bool MirrorChannel::matches(MirrorKind kind, const MessagePtr &message)
+{
+    if (message == nullptr)
+    {
+        return false;
+    }
+
+    switch (kind)
+    {
+        case MirrorKind::ModerationLog:
+            return message->flags.hasAny(
+                {MessageFlag::ModerationAction, MessageFlag::Timeout,
+                 MessageFlag::ClearChat, MessageFlag::AutoMod,
+                 MessageFlag::AutoModOffendingMessageHeader,
+                 MessageFlag::AutoModOffendingMessage,
+                 MessageFlag::AutoModBlockedTerm, MessageFlag::LowTrustUsers});
+
+        case MirrorKind::FirstMessages:
+            return message->flags.has(MessageFlag::FirstMessage);
+    }
+
+    return false;
+}
+
+
+void MirrorChannel::mirror(const Channel &source, const MessagePtr &message)
+{
+    if (!matches(this->kind_, message))
     {
         return;
     }
 
-    // Per-channel logs only care about their own channel
+    // Per-channel mirrors only care about their own channel
     if (!this->sourceChannel_.isEmpty() &&
         this->sourceChannel_.compare(source.getName(), Qt::CaseInsensitive) !=
             0)
@@ -225,12 +274,19 @@ void ModerationLogChannel::addModerationAction(const Channel &source,
         return;
     }
 
-    // 1. The moderation action itself
-    auto entry = action->clone();
-    prepareCopy(*entry, source, {});
-    this->addMessage(entry, MessageContext::Repost);
+    auto copy = message->clone();
+    prepareCopy(*copy, source, {});
+    this->addMessage(copy, MessageContext::Repost);
 
-    // 2. The last message the punished user sent before the action
+    if (this->kind_ == MirrorKind::ModerationLog)
+    {
+        this->addContextForAction(source, message);
+    }
+}
+
+void MirrorChannel::addContextForAction(const Channel &source,
+                                        const MessagePtr &action)
+{
     MessagePtr lastMessage;
     if (const auto deletedID = deletedMessageID(action); !deletedID.isEmpty())
     {
@@ -256,10 +312,18 @@ void ModerationLogChannel::addModerationAction(const Channel &source,
     this->addMessage(copy, MessageContext::Repost);
 }
 
-void forwardModerationAction(const Channel &source, const MessagePtr &message)
+void forwardMirroredMessage(const Channel &source, const MessagePtr &message)
 {
-    if (message == nullptr ||
-        !ModerationLogChannel::isModerationAction(message))
+    if (message == nullptr)
+    {
+        return;
+    }
+
+    const auto isModerationAction =
+        MirrorChannel::matches(MirrorKind::ModerationLog, message);
+    const auto isFirstMessage =
+        MirrorChannel::matches(MirrorKind::FirstMessages, message);
+    if (!isModerationAction && !isFirstMessage)
     {
         return;
     }
@@ -276,19 +340,26 @@ void forwardModerationAction(const Channel &source, const MessagePtr &message)
         return;
     }
 
-    auto logChannel = std::dynamic_pointer_cast<ModerationLogChannel>(
-        twitch->getModerationLogChannel());
-    if (logChannel != nullptr)
+    const auto sourceName = source.getName();
+
+    const auto mirrorInto = [&](const ChannelPtr &channel) {
+        if (auto mirror = std::dynamic_pointer_cast<MirrorChannel>(channel))
+        {
+            mirror->mirror(source, message);
+        }
+    };
+
+    if (isModerationAction)
     {
-        logChannel->addModerationAction(source, message);
+        // Global log first, then the pane for this channel (if it exists)
+        mirrorInto(twitch->getModerationLogChannel());
+        mirrorInto(twitch->findModerationLogChannelFor(sourceName));
     }
 
-    // Panes that only show one channel get their own log
-    auto perChannel = std::dynamic_pointer_cast<ModerationLogChannel>(
-        twitch->findModerationLogChannelFor(source.getName()));
-    if (perChannel != nullptr && perChannel != logChannel)
+    if (isFirstMessage)
     {
-        perChannel->addModerationAction(source, message);
+        mirrorInto(twitch->getFirstMessageChannel());
+        mirrorInto(twitch->findFirstMessageChannelFor(sourceName));
     }
 }
 

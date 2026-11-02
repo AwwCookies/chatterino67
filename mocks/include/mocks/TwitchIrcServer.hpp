@@ -177,6 +177,23 @@ public:
         return nullptr;
     }
 
+    ChannelPtr getFirstMessageChannel() const override
+    {
+        return this->firstMessageChannel;
+    }
+
+    ChannelPtr getFirstMessageChannelFor(
+        const QString & /* sourceChannel */) override
+    {
+        return this->firstMessageChannel;
+    }
+
+    ChannelPtr findFirstMessageChannelFor(
+        const QString & /* sourceChannel */) const override
+    {
+        return nullptr;
+    }
+
     bool isModeratorIn(const QString & /* login */) const override
     {
         return false;
@@ -189,6 +206,7 @@ public:
     ChannelPtr liveChannel;
     ChannelPtr automodChannel;
     ChannelPtr moderationLogChannel;
+    ChannelPtr firstMessageChannel;
     QString lastUserThatWhisperedMe{"forsen"};
 
     std::unordered_map<QString, std::weak_ptr<Channel>> mockChannels;

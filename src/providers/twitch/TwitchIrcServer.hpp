@@ -29,6 +29,8 @@ class Settings;
 class Paths;
 class TwitchChannel;
 class ModerationLogChannel;
+class MirrorChannel;
+enum class MirrorKind : std::uint8_t;
 class BttvEmotes;
 class FfzEmotes;
 class SeventvEmotes;
@@ -80,6 +82,15 @@ public:
         const QString &sourceChannel) = 0;
     /// Same as above, but returns nullptr if that log doesn't exist yet
     virtual ChannelPtr findModerationLogChannelFor(
+        const QString &sourceChannel) const = 0;
+
+    /// Panel with the first messages of every channel
+    virtual ChannelPtr getFirstMessageChannel() const = 0;
+    /// Same as above, but only for `sourceChannel` (created on demand)
+    virtual ChannelPtr getFirstMessageChannelFor(
+        const QString &sourceChannel) = 0;
+    /// Same as above, but returns nullptr if it doesn't exist yet
+    virtual ChannelPtr findFirstMessageChannelFor(
         const QString &sourceChannel) const = 0;
 
     virtual QString getLastUserThatWhisperedMe() const = 0;
@@ -166,9 +177,10 @@ private:
     const ChannelPtr liveChannel;
     const ChannelPtr automodChannel;
     const ChannelPtr moderationLogChannel;
-    /// Per-channel moderation logs, keyed by the source channel's name
-    std::unordered_map<QString, std::shared_ptr<ModerationLogChannel>>
-        moderationLogChannels_;
+    /// Panel with the first message of every channel
+    const ChannelPtr firstMessageChannel;
+    /// Per-channel mirrors (moderation log / first messages), keyed by name
+    std::unordered_map<QString, std::shared_ptr<MirrorChannel>> mirrorChannels_;
     IndirectChannel watchingChannel;
 
 public:
@@ -181,6 +193,10 @@ public:
     ChannelPtr getModerationLogChannel() const override;
     ChannelPtr getModerationLogChannelFor(const QString &sourceChannel) override;
     ChannelPtr findModerationLogChannelFor(
+        const QString &sourceChannel) const override;
+    ChannelPtr getFirstMessageChannel() const override;
+    ChannelPtr getFirstMessageChannelFor(const QString &sourceChannel) override;
+    ChannelPtr findFirstMessageChannelFor(
         const QString &sourceChannel) const override;
 
     QString getLastUserThatWhisperedMe() const override;
@@ -200,6 +216,12 @@ protected:
     void writeConnectionMessageReceived(Communi::IrcMessage *message);
 
     std::shared_ptr<Channel> getCustomChannel(const QString &channelname);
+
+    /// Returns (creating if needed) the mirror of `kind` for `sourceChannel`
+    ChannelPtr getMirrorChannel(MirrorKind kind, const QString &sourceChannel);
+    /// Returns the mirror of `kind` for `sourceChannel`, or nullptr
+    ChannelPtr findMirrorChannel(MirrorKind kind,
+                                 const QString &sourceChannel) const;
 
 private:
     void onMessageSendRequested(const std::shared_ptr<TwitchChannel> &channel,

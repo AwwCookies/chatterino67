@@ -568,10 +568,12 @@ std::unique_ptr<QMenu> SplitHeader::createMainMenu()
                 this->split_, &Split::openModViewInBrowser);
         }
 
-        // Always available: the moderation log is a local, filtered view of a
-        // channel's messages, so it must not require moderation rights.
+        // Always available: these are local, filtered views of a channel's
+        // messages, so they must not require moderation rights.
         menu->addAction("Moderation Log", this->split_,
                         &Split::openModerationLogPanel);
+        menu->addAction("First Time Chatters", this->split_,
+                        &Split::openFirstMessagePanel);
     }
 
     menu->addAction(

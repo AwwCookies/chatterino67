@@ -1620,7 +1620,11 @@ MessageElementFlags ChannelView::getFlags() const
             this->underlyingChannel_ ==
                 getApp()->getTwitch()->getAutomodChannel() ||
             this->underlyingChannel_ ==
-                getApp()->getTwitch()->getModerationLogChannel())
+                getApp()->getTwitch()->getModerationLogChannel() ||
+            this->underlyingChannel_ ==
+                getApp()->getTwitch()->getFirstMessageChannel() ||
+            (this->underlyingChannel_ != nullptr &&
+             this->underlyingChannel_->isMirrorChannelType()))
         {
             flags.set(MessageElementFlag::ChannelName);
             flags.unset(MessageElementFlag::ChannelPointReward);
@@ -1637,7 +1641,10 @@ MessageElementFlags ChannelView::getFlags() const
     if (this->sourceChannel_ == getApp()->getTwitch()->getMentionsChannel() ||
         this->sourceChannel_ == getApp()->getTwitch()->getAutomodChannel() ||
         this->sourceChannel_ ==
-            getApp()->getTwitch()->getModerationLogChannel())
+            getApp()->getTwitch()->getModerationLogChannel() ||
+        this->sourceChannel_ == getApp()->getTwitch()->getFirstMessageChannel() ||
+        (this->sourceChannel_ != nullptr &&
+         this->sourceChannel_->isMirrorChannelType()))
     {
         flags.set(MessageElementFlag::ChannelName);
     }
@@ -2600,6 +2607,7 @@ void ChannelView::mouseReleaseEvent(QMouseEvent *event)
                         break;
                     case Channel::Type::TwitchMentions:
                     case Channel::Type::TwitchModerationLog:
+                    case Channel::Type::TwitchFirstMessages:
                         openTwitchUsercard(layout->getMessage()->channelName,
                                            userName);
                         break;
@@ -3037,7 +3045,8 @@ void ChannelView::addMessageContextMenuItems(QMenu *menu,
                              this->split_ != nullptr;
     bool isMentions =
         this->channel()->getType() == Channel::Type::TwitchMentions ||
-        this->channel()->getType() == Channel::Type::TwitchModerationLog;
+        this->channel()->getType() == Channel::Type::TwitchModerationLog ||
+        this->channel()->getType() == Channel::Type::TwitchFirstMessages;
     bool isAutomod = this->channel()->getType() == Channel::Type::TwitchAutomod;
     if (isSearch || isMentions || isReplyOrUserCard || isAutomod)
     {
@@ -3335,6 +3344,7 @@ bool ChannelView::mayContainMessage(const MessagePtr &message)
         case Channel::Type::TwitchAutomod:
             return message->flags.has(MessageFlag::AutoMod);
         case Channel::Type::TwitchModerationLog:
+        case Channel::Type::TwitchFirstMessages:
             return true;
         case Channel::Type::TwitchEnd:  // TODO: not used?
         case Channel::Type::None:       // Unspecific
