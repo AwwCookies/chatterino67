@@ -973,6 +973,20 @@ void SplitInput::installTextEditEvents()
     // the textEdit object, so it will always be deleted before SplitInput
     std::ignore =
         this->ui_.textEdit->keyPressed.connect([this](QKeyEvent *event) {
+            // Tab with an empty input inserts the most used emote
+            if (event->key() == Qt::Key_Tab &&
+                event->modifiers() == Qt::NoModifier &&
+                this->ui_.textEdit->toPlainText().trimmed().isEmpty())
+            {
+                const auto emote = this->split_->recentEmoteName();
+                if (!emote.isEmpty())
+                {
+                    this->ui_.textEdit->insertPlainText(emote + u' ');
+                    event->accept();
+                    return;
+                }
+            }
+
             if (auto *popup = this->inputCompletionPopup_.data())
             {
                 if (popup->isVisible())

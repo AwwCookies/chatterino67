@@ -1185,6 +1185,16 @@ void Split::updateRecentEmoteChannel()
     }
 }
 
+QString Split::recentEmoteName() const
+{
+    if (this->recentEmote_ == nullptr)
+    {
+        return {};
+    }
+
+    return this->recentEmote_->currentEmoteName();
+}
+
 bool Split::sendRecentEmote()
 {
     if (!getSettings()->enableRecentEmote.getValue())

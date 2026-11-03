@@ -222,6 +222,8 @@ public Q_SLOTS:
     void openFirstMessagePanel();
     /// Sends the emote shown above the input. Returns false if there is none.
     bool sendRecentEmote();
+    /// The emote currently shown above the input (empty if there is none)
+    QString recentEmoteName() const;
     void openWhispersInBrowser();
     void openBrowserPlayer();
     void openInStreamlink();

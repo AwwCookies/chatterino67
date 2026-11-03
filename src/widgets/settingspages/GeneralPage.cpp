@@ -1756,7 +1756,8 @@ void GeneralPage::initLayout(GeneralPageView &layout)
         ->setTooltip(
             "Shows the emote that the most users used in the last 2 seconds "
             "above the input box. Click it, or press Enter with an empty "
-            "input, to send it")
+            "input, to send it. Press Tab with an empty input to insert it "
+            "into the input instead")
         ->addTo(layout);
 
     SettingWidget::dropdown("Most used emote position", s.recentEmotePosition)

@@ -154,7 +154,9 @@ void RecentEmoteButton::refresh()
     this->currentUsers_ = userCount;
 
     this->setToolTip(
-        QStringLiteral("Click to send %1 (%2 users in the last %3s)")
+        QStringLiteral(
+            "Click or press Enter to send %1 (%2 users in the last %3s)\n"
+            "Press Tab with an empty input to insert it")
             .arg(this->currentName_)
             .arg(this->currentUsers_)
             .arg(WINDOW_MS / 1000));
