@@ -142,6 +142,8 @@ private:
 
     /// Places the floating "most used emote" widget above the input box
     void positionRecentEmote();
+    /// (Re-)attaches or detaches the widget depending on the setting
+    void updateRecentEmoteChannel();
 
     /**
      * @brief Opens a Twitch channel's stream in your default browser's player (opens a formatted link)
@@ -218,6 +220,8 @@ public Q_SLOTS:
     void openModViewInBrowser();
     void openModerationLogPanel();
     void openFirstMessagePanel();
+    /// Sends the emote shown above the input. Returns false if there is none.
+    bool sendRecentEmote();
     void openWhispersInBrowser();
     void openBrowserPlayer();
     void openInStreamlink();

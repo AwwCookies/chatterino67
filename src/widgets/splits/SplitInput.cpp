@@ -579,6 +579,14 @@ QString SplitInput::handleSendMessage(const std::vector<QString> &arguments)
 
     if (!c->isTwitchOrKickChannel() || this->replyTarget_ == nullptr)
     {
+        // Empty input + Enter sends the emote floating above the input box
+        if (this->replyTarget_ == nullptr &&
+            this->ui_.textEdit->toPlainText().trimmed().isEmpty() &&
+            this->split_->sendRecentEmote())
+        {
+            return "";
+        }
+
         // standard message send behavior
         QString message = this->ui_.textEdit->toPlainText();
 

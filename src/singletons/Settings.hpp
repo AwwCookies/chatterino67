@@ -744,6 +744,9 @@ public:
 
     BoolSetting showSendButton = {"/ui/showSendButton", false};
 
+    /// Show the most used emote of the channel floating above the input box
+    BoolSetting enableRecentEmote = {"/ui/enableRecentEmote", true};
+
     struct {
         // this isn't shown in the UI
         BoolSetting enabled = {"/plugins/repl/enabled", false};

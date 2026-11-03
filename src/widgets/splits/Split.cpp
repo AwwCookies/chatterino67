@@ -146,9 +146,14 @@ Split::Split(QWidget *parent)
     QObject::connect(this->recentEmote_, &RecentEmoteButton::layoutChanged,
                      this, &Split::positionRecentEmote);
     this->signalHolder_.managedConnect(this->channelChanged, [this] {
-        this->recentEmote_->setChannel(this->getChannel());
+        this->updateRecentEmoteChannel();
     });
-    this->recentEmote_->setChannel(this->getChannel());
+    getSettings()->enableRecentEmote.connect(
+        [this](bool, auto) {
+            this->updateRecentEmoteChannel();
+        },
+        this->signalHolder_);
+    this->updateRecentEmoteChannel();
 
     // clear SplitInput selection when selecting in ChannelView
     // this connection can be ignored since the ChannelView is owned by this Split
@@ -1149,6 +1154,42 @@ void Split::positionRecentEmote()
 
     this->recentEmote_->move(maxX < 0 ? 0 : maxX, maxY < 0 ? 0 : maxY);
     this->recentEmote_->raise();
+}
+
+void Split::updateRecentEmoteChannel()
+{
+    if (getSettings()->enableRecentEmote.getValue())
+    {
+        this->recentEmote_->setChannel(this->getChannel());
+    }
+    else
+    {
+        this->recentEmote_->setChannel(ChannelPtr{});
+        this->recentEmote_->hide();
+    }
+}
+
+bool Split::sendRecentEmote()
+{
+    if (!getSettings()->enableRecentEmote.getValue())
+    {
+        return false;
+    }
+
+    const auto emote = this->recentEmote_->currentEmoteName();
+    if (emote.isEmpty())
+    {
+        return false;
+    }
+
+    auto channel = this->getChannel();
+    if (channel == nullptr)
+    {
+        return false;
+    }
+
+    channel->sendMessage(emote);
+    return true;
 }
 
 void Split::enterEvent(QEnterEvent * /*event*/)

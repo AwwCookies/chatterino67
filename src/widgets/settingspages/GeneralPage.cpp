@@ -1751,6 +1751,14 @@ void GeneralPage::initLayout(GeneralPageView &layout)
                      "clicked to send the message")
         ->addTo(layout);
 
+    SettingWidget::checkbox("Show most used emote above the input",
+                            s.enableRecentEmote)
+        ->setTooltip(
+            "Shows the emote that the most users used in the last 2 seconds "
+            "above the input box. Click it, or press Enter with an empty "
+            "input, to send it")
+        ->addTo(layout);
+
     SettingWidget::checkbox("Disable renaming of tabs on double-click",
                             s.disableTabRenamingOnClick)
         ->setTooltip("Prevents the rename dialog from opening when a tab is "

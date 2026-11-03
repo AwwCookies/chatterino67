@@ -40,6 +40,9 @@ public:
     /// Attach the widget to `channel` (and watch its messages)
     void setChannel(const ChannelPtr &channel);
 
+    /// The emote that is currently shown. Empty when nothing is shown.
+    QString currentEmoteName() const;
+
 Q_SIGNALS:
     void emoteClicked(const QString &emoteName);
     /// Emitted when the size or the visibility of the widget changed

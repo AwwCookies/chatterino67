@@ -62,6 +62,11 @@ void RecentEmoteButton::setChannel(const ChannelPtr &channel)
         });
 }
 
+QString RecentEmoteButton::currentEmoteName() const
+{
+    return this->currentName_;
+}
+
 void RecentEmoteButton::onMessage(const MessagePtr &message)
 {
     if (message == nullptr || message->loginName.isEmpty())
