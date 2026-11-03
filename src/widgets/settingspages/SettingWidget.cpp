@@ -264,6 +264,8 @@ template SettingWidget *SettingWidget::dropdown<TwitchReadConnectionMode>(
     const QString &label, EnumStringSetting<TwitchReadConnectionMode> &setting);
 template SettingWidget *SettingWidget::dropdown<KickConnectionPreference>(
     const QString &label, EnumStringSetting<KickConnectionPreference> &setting);
+template SettingWidget *SettingWidget::dropdown<RecentEmotePosition>(
+    const QString &label, EnumStringSetting<RecentEmotePosition> &setting);
 
 template <typename T>
 SettingWidget *SettingWidget::dropdown(const QString &label,

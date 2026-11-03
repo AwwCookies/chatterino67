@@ -153,6 +153,11 @@ Split::Split(QWidget *parent)
             this->updateRecentEmoteChannel();
         },
         this->signalHolder_);
+    getSettings()->recentEmotePosition.connect(
+        [this](const QString &, auto) {
+            this->positionRecentEmote();
+        },
+        this->signalHolder_);
     this->updateRecentEmoteChannel();
 
     // clear SplitInput selection when selecting in ChannelView
@@ -1149,10 +1154,21 @@ void Split::positionRecentEmote()
     }
 
     constexpr int MARGIN = 4;
-    const auto maxX = this->width() - this->recentEmote_->width() - MARGIN;
     const auto maxY = this->input_->y() - this->recentEmote_->height() - MARGIN;
+    const auto y = maxY < 0 ? 0 : maxY;
 
-    this->recentEmote_->move(maxX < 0 ? 0 : maxX, maxY < 0 ? 0 : maxY);
+    if (getSettings()->recentEmotePosition.getEnum() ==
+        RecentEmotePosition::Left)
+    {
+        this->recentEmote_->move(MARGIN, y);
+    }
+    else
+    {
+        const auto maxX =
+            this->width() - this->recentEmote_->width() - MARGIN;
+        this->recentEmote_->move(maxX < 0 ? 0 : maxX, y);
+    }
+
     this->recentEmote_->raise();
 }
 

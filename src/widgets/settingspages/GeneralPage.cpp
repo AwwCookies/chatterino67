@@ -1759,6 +1759,10 @@ void GeneralPage::initLayout(GeneralPageView &layout)
             "input, to send it")
         ->addTo(layout);
 
+    SettingWidget::dropdown("Most used emote position", s.recentEmotePosition)
+        ->setTooltip("Which side of the input box the emote is shown on")
+        ->addTo(layout);
+
     SettingWidget::checkbox("Disable renaming of tabs on double-click",
                             s.disableTabRenamingOnClick)
         ->setTooltip("Prevents the rename dialog from opening when a tab is "

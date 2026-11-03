@@ -78,6 +78,12 @@ enum class ChatSendProtocol : int {
     Helix = 2,
 };
 
+/// Which side of the input box the "most used emote" is shown on
+enum class RecentEmotePosition : int {
+    Left = 0,
+    Right = 1,
+};
+
 enum class ShowModerationState : int {
     // Always show this moderation-related item
     Always = 0,
@@ -746,6 +752,10 @@ public:
 
     /// Show the most used emote of the channel floating above the input box
     BoolSetting enableRecentEmote = {"/ui/enableRecentEmote", true};
+
+    /// Side of the input box the most used emote is shown on
+    EnumStringSetting<RecentEmotePosition> recentEmotePosition = {
+        "/ui/recentEmotePosition", RecentEmotePosition::Right};
 
     struct {
         // this isn't shown in the UI
