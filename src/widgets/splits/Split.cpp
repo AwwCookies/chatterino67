@@ -116,9 +116,6 @@ Split::Split(QWidget *parent)
     this->vbox_->addWidget(this->header_);
     this->vbox_->addWidget(this->pinnedBanner_);
     this->vbox_->addWidget(this->view_, 1);
-    // right-aligned, directly above the input box
-    this->vbox_->insertWidget(this->vbox_->count(), this->recentEmote_, 0,
-                              Qt::AlignRight);
     this->vbox_->addWidget(this->input_);
 
     this->input_->ui_.textEdit->installEventFilter(parent);
@@ -137,7 +134,7 @@ Split::Split(QWidget *parent)
         });
     this->updateInputPlaceholder();
 
-    // most used emote of this channel, shown above the input box
+    // most used emote of this channel, floating above the input box
     QObject::connect(
         this->recentEmote_, &RecentEmoteButton::emoteClicked, this,
         [this](const QString &emoteName) {
@@ -146,6 +143,8 @@ Split::Split(QWidget *parent)
                 channel->sendMessage(emoteName);
             }
         });
+    QObject::connect(this->recentEmote_, &RecentEmoteButton::layoutChanged,
+                     this, &Split::positionRecentEmote);
     this->signalHolder_.managedConnect(this->channelChanged, [this] {
         this->recentEmote_->setChannel(this->getChannel());
     });
@@ -1134,6 +1133,22 @@ void Split::resizeEvent(QResizeEvent *event)
     BaseWidget::resizeEvent(event);
 
     this->overlay_->setGeometry(this->rect());
+    this->positionRecentEmote();
+}
+
+void Split::positionRecentEmote()
+{
+    if (this->recentEmote_ == nullptr || !this->recentEmote_->isVisible())
+    {
+        return;
+    }
+
+    constexpr int MARGIN = 4;
+    const auto maxX = this->width() - this->recentEmote_->width() - MARGIN;
+    const auto maxY = this->input_->y() - this->recentEmote_->height() - MARGIN;
+
+    this->recentEmote_->move(maxX < 0 ? 0 : maxX, maxY < 0 ? 0 : maxY);
+    this->recentEmote_->raise();
 }
 
 void Split::enterEvent(QEnterEvent * /*event*/)

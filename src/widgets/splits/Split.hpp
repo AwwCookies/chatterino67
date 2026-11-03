@@ -140,6 +140,9 @@ private:
     /// Docks (or focuses) the mirror panel of `kind` for this split's channel
     void openMirrorPanel(MirrorKind kind);
 
+    /// Places the floating "most used emote" widget above the input box
+    void positionRecentEmote();
+
     /**
      * @brief Opens a Twitch channel's stream in your default browser's player (opens a formatted link)
      */

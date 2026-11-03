@@ -4,9 +4,10 @@
 
 #include "widgets/splits/RecentEmoteButton.hpp"
 
-#include "messages/Emote.hpp"
+#include "Application.hpp"
 #include "messages/Message.hpp"
 #include "messages/MessageElement.hpp"
+#include "singletons/Theme.hpp"
 
 #include <QDateTime>
 #include <QFontMetrics>
@@ -15,17 +16,17 @@
 #include <QTimer>
 
 #include <unordered_map>
+#include <unordered_set>
 
 namespace chatterino {
 
 namespace {
 
-/// Image scale requested from the emote set
-constexpr float EMOTE_IMAGE_SCALE = 1.0F;
-/// Padding around the emote
+/// Scale requested from the emote set - the highest resolution available
+constexpr float EMOTE_IMAGE_SCALE = 3.0F;
 constexpr int PADDING = 2;
-/// Space between the emote and the count
 constexpr int COUNT_SPACING = 4;
+constexpr int CORNER_RADIUS = 3;
 
 }  // namespace
 
@@ -35,9 +36,10 @@ RecentEmoteButton::RecentEmoteButton(QWidget *parent)
 {
     this->setFocusPolicy(Qt::NoFocus);
     this->setCursor(Qt::PointingHandCursor);
+    this->setAttribute(Qt::WA_TransparentForMouseEvents, false);
     this->setVisible(false);
 
-    this->expireTimer_->setInterval(200);
+    this->expireTimer_->setInterval(150);
     QObject::connect(this->expireTimer_, &QTimer::timeout, this, [this] {
         this->refresh();
     });
@@ -62,7 +64,7 @@ void RecentEmoteButton::setChannel(const ChannelPtr &channel)
 
 void RecentEmoteButton::onMessage(const MessagePtr &message)
 {
-    if (message == nullptr)
+    if (message == nullptr || message->loginName.isEmpty())
     {
         return;
     }
@@ -81,17 +83,22 @@ void RecentEmoteButton::onMessage(const MessagePtr &message)
             continue;
         }
 
-        this->addEntry(emote->name.string,
-                       emote->images.getImage(EMOTE_IMAGE_SCALE));
+        this->addEntry(emote->name.string, message->loginName.toLower(),
+                       emote);
     }
 }
 
-void RecentEmoteButton::addEntry(const QString &name, const ImagePtr &image)
+void RecentEmoteButton::addEntry(const QString &emoteName, const QString &user,
+                                 const EmotePtr &emote)
 {
+    // start downloading the high resolution variant right away
+    emote->images.getImage(EMOTE_IMAGE_SCALE)->load();
+
     this->entries_.push_back(
-        {QDateTime::currentMSecsSinceEpoch(), name, image});
+        {QDateTime::currentMSecsSinceEpoch(), emoteName, user, emote});
     this->refresh();
 }
+
 
 void RecentEmoteButton::refresh()
 {
@@ -107,45 +114,50 @@ void RecentEmoteButton::refresh()
         return;
     }
 
-    std::unordered_map<QString, int> counts;
+    // count the *users* per emote - spamming an emote doesn't count twice
+    std::unordered_map<QString, std::unordered_set<QString>> usersPerEmote;
     for (const auto &entry : this->entries_)
     {
-        counts[entry.name]++;
+        usersPerEmote[entry.emoteName].insert(entry.user);
     }
 
-    // Most used emote; ties go to the one that was used most recently
+    // most used emote; ties go to the one that was used most recently
     const Entry *best = nullptr;
     for (const auto &entry : this->entries_)
     {
-        const auto count = counts[entry.name];
-        if (best == nullptr || count >= counts[best->name])
+        if (best == nullptr ||
+            usersPerEmote[entry.emoteName].size() >=
+                usersPerEmote[best->emoteName].size())
         {
             best = &entry;
         }
     }
 
-    if (best == nullptr || counts[best->name] < MIN_COUNT)
+    if (best == nullptr || usersPerEmote[best->emoteName].size() < MIN_USERS)
     {
         this->clearCurrent();
         return;
     }
 
-    const auto count = counts[best->name];
-    const auto changed = best->name != this->currentName_ ||
-                         count != this->currentCount_;
+    const auto userCount =
+        static_cast<int>(usersPerEmote[best->emoteName].size());
+    auto changed = best->emote != this->currentEmote_ ||
+                   userCount != this->currentUsers_;
 
-    this->currentName_ = best->name;
-    this->currentImage_ = best->image;
-    this->currentCount_ = count;
+    this->currentEmote_ = best->emote;
+    this->currentName_ = best->emoteName;
+    this->currentUsers_ = userCount;
 
-    this->setToolTip(QStringLiteral("Click to send %1 (%2x in the last %3s)")
-                         .arg(this->currentName_)
-                         .arg(this->currentCount_)
-                         .arg(WINDOW_MS / 1000));
+    this->setToolTip(
+        QStringLiteral("Click to send %1 (%2 users in the last %3s)")
+            .arg(this->currentName_)
+            .arg(this->currentUsers_)
+            .arg(WINDOW_MS / 1000));
 
     if (!this->isVisible())
     {
         this->setVisible(true);
+        changed = true;
     }
     if (!this->expireTimer_->isActive())
     {
@@ -154,7 +166,8 @@ void RecentEmoteButton::refresh()
 
     if (changed)
     {
-        this->updateGeometry();
+        this->setFixedSize(this->sizeHint());
+        this->layoutChanged();
     }
     this->update();
 }
@@ -163,34 +176,34 @@ void RecentEmoteButton::clearCurrent()
 {
     this->expireTimer_->stop();
 
-    if (this->currentName_.isEmpty() && !this->isVisible())
+    if (this->currentEmote_ == nullptr && !this->isVisible())
     {
         return;
     }
 
+    this->currentEmote_.reset();
     this->currentName_.clear();
-    this->currentImage_.reset();
-    this->currentCount_ = 0;
+    this->currentUsers_ = 0;
     this->setVisible(false);
-    this->updateGeometry();
+    this->layoutChanged();
 }
 
 int RecentEmoteButton::emoteHeight() const
 {
-    return int(QFontMetrics(this->font()).height() * 1.5);
+    return int(QFontMetrics(this->font()).height() * 1.4);
 }
 
 QSize RecentEmoteButton::sizeHint() const
 {
     const auto height = this->emoteHeight();
 
-    int width = height;
-    if (this->currentCount_ > 0)
+    auto width = height;
+    if (this->currentUsers_ > 0)
     {
         width += COUNT_SPACING +
                  QFontMetrics(this->font())
                      .horizontalAdvance(u'x' +
-                                        QString::number(this->currentCount_));
+                                        QString::number(this->currentUsers_));
     }
 
     return {2 * PADDING + width, 2 * PADDING + height};
@@ -198,20 +211,32 @@ QSize RecentEmoteButton::sizeHint() const
 
 void RecentEmoteButton::paintEvent(QPaintEvent * /*event*/)
 {
-    if (this->currentName_.isEmpty())
+    if (this->currentEmote_ == nullptr)
     {
         return;
     }
 
     QPainter painter(this);
     painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+
+    // a slightly transparent background so it stays readable over the chat
+    auto background = getTheme()->splits.input.background;
+    background.setAlpha(215);
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(background);
+    painter.drawRoundedRect(this->rect(), CORNER_RADIUS, CORNER_RADIUS);
 
     const auto height = this->emoteHeight();
     const QRect emoteRect(PADDING, PADDING, height, height);
 
-    if (this->currentImage_ != nullptr)
+    // Prefer whatever variant is already loaded, but ask for the high
+    // resolution one so it upgrades as soon as it's available
+    const auto &image =
+        this->currentEmote_->images.getImageOrLoaded(EMOTE_IMAGE_SCALE);
+    if (image != nullptr)
     {
-        if (auto pixmap = this->currentImage_->pixmapOrLoad(); pixmap)
+        if (auto pixmap = image->pixmapOrLoad(); pixmap)
         {
             painter.drawPixmap(
                 emoteRect, pixmap->scaled(emoteRect.size(),
@@ -221,6 +246,7 @@ void RecentEmoteButton::paintEvent(QPaintEvent * /*event*/)
         else
         {
             // still loading - show the name instead
+            painter.setPen(this->palette().color(QPalette::WindowText));
             painter.drawText(emoteRect, Qt::AlignCenter, this->currentName_);
         }
     }
@@ -230,7 +256,7 @@ void RecentEmoteButton::paintEvent(QPaintEvent * /*event*/)
                           this->width() - emoteRect.right() - COUNT_SPACING,
                           height);
     painter.drawText(countRect, Qt::AlignLeft | Qt::AlignVCenter,
-                     u'x' + QString::number(this->currentCount_));
+                     u'x' + QString::number(this->currentUsers_));
 }
 
 void RecentEmoteButton::mousePressEvent(QMouseEvent *event)
